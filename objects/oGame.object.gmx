@@ -27,6 +27,14 @@
             <kind>1</kind>
             <string>state = "initializing";
 
+randomize();
+
+turnOrder = ds_list_create();
+turnCounter = -1;
+turnMax = 0;
+currentActor = noone;
+roundCounter = 0;
+
 globalvar map;
 
 mapWidth = room_width/GRID_SIZE;
@@ -36,6 +44,8 @@ mapHeight = room_height/GRID_SIZE;
 for(xx = 0; xx &lt; mapWidth; xx += 1) {
     for(yy = 0; yy &lt; mapHeight; yy += 1) {
         map[xx, yy] = instance_create(xx * GRID_SIZE, yy * GRID_SIZE, oNode);
+        map[xx, yy].gridX = xx;
+        map[xx, yy].gridY = yy;
     }
 }
 
@@ -88,21 +98,6 @@ for(xx = 0; xx &lt; mapWidth; xx += 1) {
 
 instance_create(x, y, oCursor);
 
-with(instance_create(5 * GRID_SIZE, 5 * GRID_SIZE, oHero)) {
-    gridX = 5;
-    gridY = 5;
-    name = "Sandy";
-    map[gridX, gridY].occupant = id;
-}
-
-with(instance_create(5 * GRID_SIZE, 8 * GRID_SIZE, oHero)) {
-    gridX = 5;
-    gridY = 8;
-    name = "Danny";
-    map[gridX, gridY].occupant = id;
-}
-
-
 
 
 
@@ -137,37 +132,83 @@ with(instance_create(5 * GRID_SIZE, 8 * GRID_SIZE, oHero)) {
             <string>switch(state) {
     case "initializing":
         with(oNode) {
-            if(instance_position(x + 16, y + 16, oTerrain)) {
-                tempTerrain = instance_position(x + 16, y + 16, oTerrain);
+            if(instance_position(x + GRID_SIZE/2, y + GRID_SIZE/2, oTerrain)) {
+                tempTerrain = instance_position(x + GRID_SIZE/2, y + GRID_SIZE/2, oTerrain);
         
                 switch(tempTerrain.type) {
                     case "rock": 
                         type = "rock";
-                        sprite_index  = sRock;
+                        instance_change(oRock, true);
                         passable = false;
-        
                         break;
                     case "rubble":
                         type = "rubble";
-                        sprite_index = sRubble;
+                        instance_change(oRubble, true);
                         passable = true;
                         cost = 2;
-        
                         break;
-        
                     case "grass":
                         type = "grass";
-                        sprite_index = sGrass;
+                        instance_change(oGrass, true);
                         passable = true;
                         cost = 1;
+                        break;
                 }
         
                 with(tempTerrain) {
                     instance_destroy();
                 }
             }
+            if(instance_position(x + GRID_SIZE/2, y + GRID_SIZE/2, oActor)) {
+                occupant = instance_position(x + GRID_SIZE/2, y + GRID_SIZE/2, oActor);
+                occupant.gridX = x / GRID_SIZE;
+                occupant.gridY = y / GRID_SIZE;
+            }
         }
+        state = "roll init";
+        break;
+    case "roll init":
+        tempInit = ds_priority_create();
+        with(oActor) {
+            initRoll = irandom_range(1, 20) + initiative; //"irandom_range" returns an integer between arg 1 and 2
+            ds_priority_add(other.tempInit, id, initRoll); //"other" returns the object that called the current object (oGame called oActor)
+        }
+        
+        while(ds_priority_size(tempInit) &gt; 0) {
+            ds_list_add(turnOrder, ds_priority_delete_max(tempInit));
+        }
+        turnMax = ds_list_size(turnOrder);
+        ds_priority_destroy(tempInit);
         state = "ready";
+        break;
+    case "ready":
+        if(currentActor == noone) {
+            turnCounter += 1;
+            if(turnCounter &gt;= turnMax) {
+                turnCounter = 0;
+                roundCounter += 1;
+            }
+            currentActor = ds_list_find_value(turnOrder, turnCounter);
+
+            currentActor.actions = 2;
+            currentActor.canAct = true;
+            
+            //only pass off actions and cursor control if actor is RED_ARMY
+            if(currentActor.army == RED_ARMY) {
+                oCursor.selectedActor = currentActor;
+                movement_range(map[currentActor.gridX, currentActor.gridY], currentActor.move, currentActor.actions);   
+                
+                switch(currentActor.attackType) {
+                    case "ranged":
+                        ranged_attack_range(currentActor);
+                        break;
+                }
+            //otherwise set flash to true and set alarm
+            } else {
+                currentActor.flash = true;
+                currentActor.alarm[0] = 30;
+            }
+        }
         break;
 }
 

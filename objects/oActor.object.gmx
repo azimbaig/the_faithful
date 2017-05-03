@@ -25,12 +25,184 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>gridX = 0;
+            <string>state = "idle";
+
+army = "RED_ARMY";
+
+gridX = 0;
 gridY = 0;
 
 name = "Error";
 
+class = "Peasant";
 
+race = "Human";
+
+//Character stats
+level = 1;
+
+//Base stats
+profMod = 2 + floor(level/5);
+
+strMod = 0; //strength
+dexMod = 0; //dexterity
+conMod = 0; //constitution
+intMod = 0; //intellect
+wisMod = 0; //wisdom
+
+//Health stats
+maxHitPoints = 4 + conMod + ((level - 1) * (3 + conMod));
+hitPoints = maxHitPoints;
+
+//Attack variables
+hitBonus = profMod + strMod;
+attackType = "melee";
+attackRange = GRID_SIZE;
+attackTarget = noone;
+attackTimer = 0;
+
+//Damage variables
+damageDice = 4;
+damageBonus = strMod;
+damageType = "piercing";
+
+//Defense variables
+armorClass = 10 + dexMod;
+
+//Move and Actions variables
+move = 5; //how many squares the char can move
+actions = 2; //how many times the char can move or attack per turn
+canAct = false;
+
+initiative = dexMod;
+initRoll = 0;
+
+//pathing variables
+movementPath = path_add(); //create path data structure
+path_set_kind(movementPath, 2); //type 2 is a more rounded path
+path_set_closed(movementPath, false); //a closed path is looped - we don't want that
+
+moveSpeed = 8; //speed in pixels per step
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>//state machine
+switch(state) {
+    case "begin path":
+        //begin moving along path
+        path_start(movementPath, moveSpeed, 0, true);
+        state = "moving";
+        break;
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="8">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>//clear path
+path_clear_points(movementPath);
+
+state = "idle";
+
+if(actions &gt; 0) {
+    oCursor.selectedActor = id;
+    movement_range(map[gridX, gridY], move, actions);
+    
+    if(canAct) {
+        switch(attackType) {
+            case "ranged":
+                ranged_attack_range(id);
+                break;
+        }
+    }
+} else {
+    oGame.currentActor = noone;
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="8" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>if(oCursor.selectedActor == id) {
+    //if cursor is hover on a node different from actor's
+    if(oCursor.hoverNode != noone ) {
+        tempNode = oCursor.hoverNode;
+    
+        //draw the path that the character will take
+        if(tempNode.moveNode) {
+            current = tempNode;
+            //loop through ALL nodes, parent to parent, until we reach the actor's node
+            while(current.parent != noone) {
+                draw_line_width_colour(current.x + GRID_SIZE/2, current.y + GRID_SIZE/2, current.parent.x + GRID_SIZE/2, current.parent.y + GRID_SIZE/2, 4, c_lime, c_lime);
+                current = current.parent;
+            }
+        }
+        
+        //draw the path of the ranged attack
+        if(tempNode.attackNode) {
+            switch(attackType) {
+                case "ranged":
+                    draw_line_width_colour(x + GRID_SIZE/2, y + GRID_SIZE/2, tempNode.x + GRID_SIZE/2, tempNode.y + GRID_SIZE/2, 4, c_purple, c_purple);
+                    break;
+            }
+        }
+    }
+}
+
+draw_self();
 </string>
           </argument>
         </arguments>

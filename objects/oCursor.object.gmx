@@ -66,28 +66,54 @@ if(gridX &lt; 0 || gridY &lt; 0 || gridX &gt;= room_width/GRID_SIZE || gridY &gt
     hoverNode = map[gridX, gridY];
 }
 
-if(mouse_check_button_pressed(mb_left)) {
-    if(hoverNode.occupant != noone) {
-        selectedActor = hoverNode.occupant;
-    } else {
-        selectedActor = noone;
-    }
-}
-
 if(mouse_check_button_pressed(mb_right)) {
-    if(selectedActor != noone &amp;&amp; hoverNode.occupant == noone &amp;&amp; hoverNode.passable) {
-        ///clear the node of selected actor
-        map[selectedActor.gridX, selectedActor.gridY].occupant = noone;
+    if(selectedActor != noone &amp;&amp; hoverNode.moveNode) {
+        current = hoverNode;
+
+        //create priority queue
+        path = ds_priority_create();
+        //add current node to queue
+        ds_priority_add(path, current, current.G);
         
-        ///update selected actor's position info
+        //loop through all nodes, parent to parent and place them into priority queue
+        while(current.parent != noone) {
+            //add parent to queue
+            ds_priority_add(path, current.parent, current.parent.G);
+            
+            current = current.parent;
+        }
+        do{
+            //delete lowest priority node (closest to actor's), store id in current
+            current = ds_priority_delete_min(path);
+            
+            //add current node's sprite cooridnates to selectedActor's path
+            path_add_point(selectedActor.movementPath, current.x, current.y, 100); //100 is speed of movement (can modify for tougher terrain)
+        }until(ds_priority_empty(path));
+        
+        //clean up queue
+        ds_priority_destroy(path);
+
+        //clear the node of selectedActor
+        map[selectedActor.gridX, selectedActor.gridY].occupant = noone;
+
+        //update selectedActor's coords
         selectedActor.gridX = gridX;
         selectedActor.gridY = gridY;
-        selectedActor.x = hoverNode.x;
-        selectedActor.y = hoverNode.y;
         
-        ///update the new node's occupant
+        //update selectedActor's future node
         hoverNode.occupant = selectedActor;
-    } else {
+        
+        //send selectedActor on their way
+        selectedActor.state = "begin path";
+        
+        //reduce selectedActor's actions and wipe nodes
+        if(hoverNode.G &gt; selectedActor.move) {
+            selectedActor.actions -= 2;
+            wipe_nodes();
+        } else {
+            selectedActor.actions -= 1;
+            wipe_nodes();
+        }
         selectedActor = noone;
     }
 }
@@ -150,36 +176,26 @@ if(hoverNode != noone) {
         tempText += " passable = true, cost = " + string(hoverNode.cost);
     }
     draw_set_color(c_black);
-    draw_rectangle(0, 20, string_width(tempText), 2 + string_height(tempText), false);
+    draw_rectangle(0, 20, string_width(tempText), 2 * string_height(tempText), false);
     draw_set_color(c_white);    
     draw_text(0, 20, tempText);
 }
 
 if(selectedActor != noone) {
-    tempText = selectedActor.name;
+    tempText = selectedActor.name + " the " + selectedActor.race + " " + selectedActor.class;
+    tempHitPoints = "HP: " + string(selectedActor.hitPoints) + " / " + string(selectedActor.maxHitPoints);
+    tempHitBonus = "HitBonus: " + string(selectedActor.hitBonus);
+
     draw_set_color(c_black);
-    draw_rectangle(0, room_height, string_width(tempText), room_height - string_height(tempText), false);
+    draw_rectangle(0, room_height, string_width(tempHitBonus), room_height - string_height(tempHitBonus), false);
+    draw_rectangle(0, room_height - GRID_SIZE/2, string_width(tempHitPoints), room_height - GRID_SIZE/2 - string_height(tempHitPoints), false);
+    draw_rectangle(0, room_height - GRID_SIZE, string_width(tempText), room_height - GRID_SIZE - string_height(tempText), false);
+    
     draw_set_color(c_white);
-    draw_text(0, room_height - string_height(tempText), tempText);
+    draw_text(0, room_height - string_height(tempHitBonus), tempHitBonus);
+    draw_text(0, room_height - GRID_SIZE/2 - string_height(tempHitPoints), tempHitPoints);
+    draw_text(0, room_height - GRID_SIZE - string_height(tempText), tempText);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
