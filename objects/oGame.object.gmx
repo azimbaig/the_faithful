@@ -25,7 +25,9 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>state = "initializing";
+            <string>draw_set_font(fDefault);
+
+state = "initializing";
 
 randomize();
 

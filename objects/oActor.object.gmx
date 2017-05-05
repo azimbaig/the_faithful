@@ -83,6 +83,10 @@ path_set_kind(movementPath, 2); //type 2 is a more rounded path
 path_set_closed(movementPath, false); //a closed path is looped - we don't want that
 
 moveSpeed = 8; //speed in pixels per step
+
+//variables related to effects
+shake = 0;
+shakeMag = 0;
 </string>
           </argument>
         </arguments>
@@ -105,12 +109,94 @@ moveSpeed = 8; //speed in pixels per step
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>//state machine
+            <string>shake -= 1;
+
+//state machine
 switch(state) {
     case "begin path":
         //begin moving along path
         path_start(movementPath, moveSpeed, 0, true);
         state = "moving";
+        break;
+    
+    case "begin attack":
+        attackTimer -= 1;
+        if(attackTimer &lt;= 0){
+            state = "attack";
+        }        
+        break;
+        
+    case "attack":
+        switch(attackType){
+            case "ranged":
+                attackRoll = irandom_range(1, 20);
+                
+                //determine outcome of roll
+                if(attackRoll == 20){
+                    attackStatus = "crit";
+                } else {
+                    if(attackRoll + hitBonus &gt;= attackTarget.armorClass){
+                        attackStatus = "hit";
+                    } else {
+                        attackStatus = "miss";
+                    }
+                }
+                
+                tempDamage = 0;
+                
+                //make damage roll
+                if(attackStatus != "miss"){
+                    tempDamage = irandom_range(1, damageDice) + damageBonus;
+                    if(attackStatus == "crit"){
+                        tempDamage += irandom_range(1, damageDice);
+                    }
+                } 
+                  
+                attackDir = point_direction(x + GRID_SIZE/2, y + GRID_SIZE/2, attackTarget.x + GRID_SIZE/2, attackTarget.y + GRID_SIZE/2); //Dir for Direction
+                
+                // lengthdir_ return the x coordinate from a point of certain distance away(30px)
+                // at a certain attack direction. it always assumes that it starts with 0
+                beginX = x + GRID_SIZE/2 + lengthdir_x(30, attackDir);
+                beginY = y + GRID_SIZE/2 + lengthdir_y(30, attackDir);
+                   
+                with(instance_create(beginX, beginY, oArrow)){
+                    target = other.attackTarget;
+                    status = other.attackStatus;
+                    damage = other.tempDamage;
+                    damageType = other.damageType;
+                    
+                    path_add_point(movementPath, other.beginX, other.beginY, 100);
+                    
+                    if(status != "miss"){
+                        path_add_point(movementPath, target.x + GRID_SIZE/2, target.y + GRID_SIZE/2, 100);
+                    } else {
+                        path_add_point(movementPath, target.x + (irandom_range(30, 50) * choose(-1, 1)), target.y + (irandom_range(30, 50) * choose(-1, 1)), -100);
+                    }
+                    
+                    path_start(movementPath, speed, true, true);
+                }
+                
+                state = "end attack";
+                
+                attackTimer = 30;
+                   
+                break;
+        }       
+        break;
+        
+    case "end attack":
+        attackTimer -= 1;
+        
+        if(attackTimer &lt;= 0){
+            if(actions &gt; 0){
+                oCursor.selectedActor = id; // id - that's us
+                movement_range(map[gridX, gridY], move, actions);
+            } else {
+                oGame.currentActor = noone;   
+            }             
+            
+            state = "idle";
+        }
         break;
 }
 </string>
@@ -202,7 +288,11 @@ if(actions &gt; 0) {
     }
 }
 
-draw_self();
+if(shake &gt; 0){
+    draw_sprite_ext(sprite_index, -1, x + irandom_range(-shakeMag, shakeMag), y + irandom_range(-shakeMag, shakeMag), 1, 1, 0, c_white, 1);
+} else {
+    draw_self();
+}
 </string>
           </argument>
         </arguments>
