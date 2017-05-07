@@ -75,7 +75,7 @@ path_set_kind(movementPath, 2);
             
             image_speed = .5; // it'll only update the sprite's frame every other step
             
-            if(other.status = "crit"){ // if it's a critical hit
+            if(other.status == "crit"){ // if it's a critical hit
                 color = c_yellow;
             }
             
@@ -87,7 +87,7 @@ path_set_kind(movementPath, 2);
         
         ground = y;
         
-        if(other.status = "crit"){
+        if(other.status == "crit"){
             font = fCrit;
         }
     }

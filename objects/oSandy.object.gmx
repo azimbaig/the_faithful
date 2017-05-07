@@ -60,6 +60,10 @@ attackRange = 15 * GRID_SIZE;
 move = 7; //how many squares the char can move
 actions = 2; //how many times the char can move or attack per turn
 
+//special action variables
+sneakAttack = true;
+sneakAttackDamage = 6;
+
 //Initiative variables
 initiative = dexMod;
 initRoll = 0;

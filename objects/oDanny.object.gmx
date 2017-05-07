@@ -66,6 +66,9 @@ armorClass = 18;
 move = 5; //how many squares the char can move
 actions = 2; //how many times the char can move or attack per turn
 
+//special action variables
+charge = true;
+
 //Initiative variables
 initiative = dexMod;
 initRoll = 0;

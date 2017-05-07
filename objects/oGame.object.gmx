@@ -204,6 +204,10 @@ instance_create(x, y, oCursor);
                     case "ranged":
                         ranged_attack_range(currentActor);
                         break;
+                        
+                    case "melee":
+                        melee_attack_range(currentActor);
+                        break;
                 }
             //otherwise set flash to true and set alarm
             } else {
